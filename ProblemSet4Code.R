@@ -1,6 +1,3 @@
-##### Text as Data Problem Set 4
-##### November 2, 2015
-
 ####Process the Text: Inaugural Addresses
 
 # import all the things
@@ -11,10 +8,6 @@ library(tm)
 library(ngram)
 library(topicmodels)
 library(SnowballC)
-
-#setwd("Box Sync/mpc/DataServices/DS6559/problemsets/")
-#dir.create("inaugTMtest")
-#setwd("inaugTMtest") # mpc added
 
 # Load the source page
 source.page <- read_html("http://www.presidency.ucsb.edu/inaugurals.php")
@@ -46,14 +39,14 @@ inaugural.all <- subset(x=inaugural, link %in% all)
 # Get text for all so can make corpus
 for(i in seq(nrow(inaugural.all))) {
   text.all <- read_html(inaugural.all$url[i]) %>% # load the page
-    html_nodes(".displaytext") %>% # isloate the text
+    html_nodes(".displaytext") %>% # isolate the text
     html_text() # get the text
   
-  party <- ifelse(test = inaugural.all$link[i] %in% early,
+  timperiod <- ifelse(test = inaugural.all$link[i] %in% early,
                   yes = "early", no = "late")
   
   # Create the file name
-  filename <- paste0(party, "-", inaugural.all$link[i], ".txt")
+  filename <- paste0(timeperiod, "-", inaugural.all$link[i], ".txt")
   
   # and send the output to an appropriately named file
   sink(file = filename) %>% # open file to write 
@@ -173,7 +166,6 @@ inaugural30 <- LDA(allcorcommon, k=30, control=list(seed=seed1))
 seed2=500
 inaugural50 <- LDA(allcorcommon, k=50, control=list(seed=seed2))
 
-
 # Evaluate/Interpret
 # Terms
 terms(inaugural30, 3) # top 3
@@ -185,12 +177,12 @@ terms(inaugural50, threshold=.005)
 probterms2 <- as.data.frame(posterior(inaugural50)$terms) 
 
 ################# Commentary on Terms of M1 and M2
->>>Will, something to check: which lines printed the top term assignments for the
-topics? // Do we have lines that do that?
-
-Q: Do these seem like probably themes?
-Q: Does M1 or M2 strick you as producing more meaningful topics? Why?
->>> I think M2, with only 30 topics.
+# >>>Will, something to check: which lines printed the top term assignments for the
+# topics? // Do we have lines that do that?
+# 
+# Q: Do these seem like probably themes?
+# Q: Does M1 or M2 strick you as producing more meaningful topics? Why?
+# >>> I think M2, with only 30 topics.
 
 #################
 
@@ -207,15 +199,15 @@ t3 <- subset(probtopic, probtopic[,3]>.75)
 t3$id <- row.names(t3)
 
 ######################Commentary on top topic assignments for each document
->>> to check: DO WE HAVE CODE THAT PRINTS THEM TO THE CONSOLE?
-Q: Graph the topic distribution for one document as an example
-(I DONT THINK WE HAVE CODE THAT DOES THIS)
-Q: Graph the same document for M1 and M2 - do the models with varying k assign
-the document to a seemingly similar topic??
+# >>> to check: DO WE HAVE CODE THAT PRINTS THEM TO THE CONSOLE?
+# Q: Graph the topic distribution for one document as an example
+# (I DONT THINK WE HAVE CODE THAT DOES THIS)
+# Q: Graph the same document for M1 and M2 - do the models with varying k assign
+# the document to a seemingly similar topic??
 ######################
 
 # Cohesiveness 
-# a. A function to calculate cohesiveness of topics based on the
+# A function to calculate cohesiveness of topics based on the
 # occurrenc/co-occurrence of top 10 word assignments across documents
 cohesiveness<- function(mod.out, allDTM, k){
   topWords <- terms(mod.out, 10)[,k] 
@@ -245,9 +237,9 @@ cohesive <- function(mod.out, allDTM{
   names(coh) <- seq(1,k,1)
   coh
 }
+
 # Call cohesive function: cohesive(model, dtm)
-cohesive(inaugural30, allcorcommon)
-# Bigger numbers (less negative numbers) are more cohesive
+cohesive(inaugural30, allcorcommon) # Bigger numbers (less negative numbers) are more cohesive
 
 # Exclusivity
 # A function to calculate exclusivity of topics based on the probability
