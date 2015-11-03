@@ -1,8 +1,6 @@
-# Problem Set 3
-# Adriel Barrett-Johnson and Will Schwieder
-# 10/24/15
+# Want to complete a clustering exercise looking at the course descriptions across the University
 
-# We want to complete a clustering exercise looking at the course descriptions across the University
+#import all the things
 library(tm)
 library(dplyr)
 library (ggplot2)
@@ -11,8 +9,6 @@ library (xml)
 library (xml2)
 library(proxy)
 library(cluster)
-
-setwd("C:/Users/Will Schwieder/Desktop/DS TextasData/")
 
 # Read in downloaded list
 lou <- read.csv("courses1152Data.csv")
@@ -67,7 +63,6 @@ ucorpus <- tm_map(ucorpus, stemDocument)
 #Make a document term matrix
 louTDM <-DocumentTermMatrix(ucorpus)
 
-# We want to eliminate the words that do not show up more than twice among departments 
 louCommon <- removeSparseTerms(louTDM, 0.99)
 
 ########### Kmeans clustering ###############
@@ -90,9 +85,6 @@ ssPlot <- function(data, maxCluster=10) {
 set.seed(121)
 ssPlot(lou.mN)
 
-# So looking at the graph we think that 6 could be a good place to start for clustering groups but we are sceptical 
-# because we believe there should be more than 6 clusters
-
 # And cluster!
 km <- kmeans(lou.mN, 6, iter.max=25, nstart=5) # try 6 groups
 km.cluster <- km$cluster
@@ -101,7 +93,7 @@ table(km.cluster)
 tw.pc<-prcomp(lou.mN)
 summary(tw.pc) 
 plot(tw.pc$x[,1:2])
-# We note that the first to PCs account for only .024 and .019 of the variance.
+# Note that the first to PCs account for only .024 and .019 of the variance.
 # It therefore makes sense that this plotting shows everything clumped together
 # with a couple trailing plots of points. These dimensions just don't do a lot to
 # differentiate among the points.
@@ -135,28 +127,27 @@ u.lou %>%
 twDF <- as.data.frame(lou.m) # coerce to dataframe
 twDF <- data.frame(twDF, km$cluster) # append clusters
 
-# a. Find most representative member (closest to center) as examplar
+# Find most representative member (closest to center) as examplar
 # apply this function to observations for each level of the cluster
 candidates <- by(twDF[-ncol(twDF)], twDF[ncol(twDF)], function(data) {
   dists <- sapply(data, function(x) (x - mean(x))^2) # for each var, calc each ob's deviation from mean
   dists <- rowSums(dists) # for each ob, sum the deviations across vars
   rownames(data)[dists == min(dists)] # the row number of the minimum sum
 })
+
 # List representative docs
 candidates # index number
 candidates <- as.numeric(unlist(candidates))
 candidateDescription <- u.lou[candidates, c(1,5)] 
 candidateDescription
 
-# b. Function to obtain most highly weighted words in each cluster
+#  Function to obtain most highly weighted words in each cluster
 twList <- split(twDF, twDF$km.cluster) # split into lists by cluster
 # apply function to each list: sum columns/weights, sort, save top 10
 topwords <- lapply(twList, function(x) { 
   sort(apply(x[,-ncol(x)], 2, sum), decreasing=TRUE)[1:10]
 })
 topwords
-
- 
 
 ########### Hierarchical Clustering ###############
 
@@ -174,22 +165,20 @@ rect.hclust(hc.cd.ward, k=8, border="blue")
 # mpc added: make cluster assignments and add to data frame (thanks!)
 hc.cluster <- cutree(hc.cd.ward, k=6) 
 table(hc.cluster)
-# now you can add these to the data frame (here's a differnet way)
+# now you can add these to the data frame 
 u.lou[, "hc.cluster"] <- as.factor(hc.cluster)
-# and start examining attributes of the clusters (here's a different way: subsetting)
 
-# # mpc added: I wouldn't run this -- it takes too long with 1500 rows
-# # Mimize within-cluster dissimilarity (akin to "elbow plot" for kmeans)
-# # Captures mean documents per cluster and mean distance between points per cluster
-# # Adapted from http://rpubs.com/frankdevans/sotu_cluster
+
+### thoughts for other stuff, generally ignore everything below this for the moment
+
 # dist_mat <- as.matrix(sou.cd)
-# clust_cuts <- data.frame(cut_level=1:10, # mpc changed
+# clust_cuts <- data.frame(cut_level=1:10, 
 #                          avg_size=0, avg_dist=0)
 # 
 # for (i in 1:(nrow(clust_cuts) - 1)) {
 #   clust_cuts[clust_cuts$cut_level==i, 'avg_size'] <- 
 #     mean(table(cutree(tree=hc.cd.ward, k=i)))
-#   df_dist <- data.frame(doc_name=paste(u.lou$Mnemonic,u.lou$number), # mpc changed
+#   df_dist <- data.frame(doc_name=paste(u.lou$Mnemonic,u.lou$number), 
 #                         clust_cut=cutree(tree=hc.cd.ward, k=i)) %>%
 #     inner_join(x=., y=., by='clust_cut') %>%
 #     filter(doc_name.x != doc_name.y)
@@ -211,93 +200,3 @@ u.lou[, "hc.cluster"] <- as.factor(hc.cluster)
 #   coord_cartesian(xlim=c(0,20),ylim=c(.5,1))
 
 ###########################################
-
-# K-means Clustering
-# We found the most meaningful exploration of the clusters to be examining the top 
-# words in each cluster. 
-# 
-# Cluster 1: Independent, Thesis, Faculty, Study, Supervision, Research, Member,
-# Major, Program, Student 
-# I'm actually super impressed at how well this process produced a group of classes
-# with just logistical descriptions/issues. In every department there are classes
-# like this, where the only description is something like "independent study"
-# or "research, faculty supervision"
-
-# Cluster 2: Politics, Culture, Historical, American, Social study,  
-# Century, Explore, Examine, Survey
-# # This grouping is of classes about politics and culture and history,
-# with an american focus. Again, what I find super interesting is that
-# I would naturally think of classes from a wide range of departments as fitting 
-# this description. In choosing classes for myself, this is a category I would
-# naturally see as cohesive/coherent. 
-
-# Cluster 3: Art, Instructor, Permission, Prerequisites, Spanish, Placement, 
-# Department, Equivalent, Drama, Credit
-# # In the art and drama department, as well as the Spanish department, every single
-# class lists the extensive pre-reqs. I think this process picked up on that. 
-# 
-# 
-# Cluster 4: Include, Will, Student, System, Design, Basic, Course, 
-# Prerequisite,  Develop, Continue
-# We see that this set of top words from cluster 4 contains a lot of words 
-# normally seen in class descriptions of middle or even upper level classes.
-# 
-# Cluster 5: New, Subject, Offer, Opportunity, Course,  Provide, 
-# Perform, Music, May, Topic
-# 
-# Cluster 6: Website, Subject, Offer, opportunity, Course,  Provide , perform, 
-# Music, May, Topic, Httpwwwvirginiaeduphilosophi, Year
-# 
-# Clusters 5 and 6 have almost the same words, with minor differences. We see that all
-# philosophy classes seem to have been put in cluster 6. The music classes seem to
-# be split into clusters 5 and 6. This indicates to me that possibly the music classes
-# have very divergent course descriptions, or that music fits into both of the
-# more fundamental natures of clusters 5 and 6, and the process just distributed 
-# the music classes into each. 
-# 
-# 
-# 
-# 
-# # 
-# # Hierarchical Clustering
-# # For our hierarchical clustering visualization, we have a red line drawn where 
-# # there are five clusters and a blue line drawn where there are eight. There appear
-# # to be seven distinct clusters in the groupings. We hypothesize these are due 
-# # to the seven distinct undergraduate schools at the University (College,
-# # Engineering, Commerce, Nursing, Architecture, Batten, and Curry). 
-# # That there are seven clusters through the 
-# # hierarchical clustering is interesting because these seven clusters were 
-# # organically shaped, while in the k clustering we imposed precisely six clusters.
-# # Thus the hierarchical clustering graph indicates that it might be that the most 
-# # accurate number of clusters for this data is seven.
-# # 
-# # Further exploration:
-# #   
-# # A couple things. First, I would go back and redo the k clustering with 7 groups and see
-# # what comes of that. From the hierarchical clustering we saw 7 groups naturally form,
-# # and I want to see if bringing that to the k clustering changes the nature of 
-# # those groupings significantly.
-# # Second, I would really like to look at the words beyond just the top words for 
-# each group. I hypothesize that looking at the next ten characteristic words
-# will show even more nuanced differences between these groupings. 
-# 
-# I would be very interested in seeing to what degree major requirements
-# for all the different majors make people take classes all within the same group/
-# have people take classes in different groupings.
-# 
-# I would also be very interested in seeing what would happen if we took our all
-# of the logistical/administrative words. Maybe a more interesting/content oriented
-# set of groupings would emerge. Or maybe this shows us the importance of the way 
-# classes are structured in how people actually experience/think about classes. 
-# 
-# A hypothesis: perhaps the ways we have separated departments is arbitrary or wrong.
-# Perhaps these need to be reorganized, or thought of differently. 
-# Particularly at a university as large as UVA, where the departments are physically
-# housed in separate places. 
-# Are there professors who actually study really related ideas who don't interact
-# with each other because they are arbitrarily in such different locations?
-# These would be super fascinating things to further research!
-
-# # One more thing: it would be cool to feed the course descriptions from each group
-# into a babble function like we did on the first problemset, and see what kinds of 
-# class descriptions it would generate.
