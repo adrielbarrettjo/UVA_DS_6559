@@ -9,7 +9,7 @@ library(ngram)
 # Load the source page
 source.page <- read_html("http://www.presidency.ucsb.edu/inaugurals.php")
 
-# Now we need to work out exactly which URLs on the page is the text we want to pull
+# need to work out exactly which URLs on the page is the text we want to pull
 url <- source.page %>%
   html_nodes(".ver12 a") %>%  # get the CSS nodes
   html_attr("href") # extract the URLs
@@ -36,9 +36,7 @@ for(i in seq(nrow(inaugural.m))) {
     html_nodes(".displaytext") %>% # isloate the text
     html_text() # get the text
   
-  # Find the time period of this link
-  # use time vector (and ifelse() statement) to determine 
-  # if text should be marked Rep or Dem 
+# Find the time period of this link
   party <- ifelse(test = inaugural.m$link[i] %in% early,
                   yes = "early", no = "late")
   
@@ -57,21 +55,19 @@ for(i in seq(nrow(inaugural.s))) {
     html_nodes(".displaytext") %>% # isloate the text
     html_text() # get the text
   
-  # Find the time period
-  # use year vector (and ifelse() statement) to determine 
-  # if text should be marked Rep or Dem 
+# Find the time period
   party.s <- ifelse(test = inaugural.s$link[i] %in% late,
                   yes = "late", no = "early")
   
-  # Create the file name
+# Create the file name
   filename <- paste0(party.s, "-", inaugural.s$links[i], ".txt")
-  # and send the output to an appropriately named file
+# and send the output to an appropriately named file
   sink(file = filename) %>% # open file to write 
     cat(text.s)  # write the file
   sink() # close the file
 }
  
-# We want to look at early versus late babble chunks
+# want to look at early versus late babble chunks
 # babble for early
 earlytext <- paste(text.m)
 ngr <- ngram(earlytext, n = 3)
