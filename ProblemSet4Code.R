@@ -1,4 +1,7 @@
 ####Process the Text: Inaugural Addresses
+setwd("DropBox")
+dir.create("inaugTMtest")
+setwd("inaugTMtest")
 
 # import all the things
 library(rvest)
@@ -42,7 +45,7 @@ for(i in seq(nrow(inaugural.all))) {
     html_nodes(".displaytext") %>% # isolate the text
     html_text() # get the text
   
-  timperiod <- ifelse(test = inaugural.all$link[i] %in% early,
+  timeperiod <- ifelse(test = inaugural.all$link[i] %in% early,
                   yes = "early", no = "late")
   
   # Create the file name
@@ -55,7 +58,7 @@ for(i in seq(nrow(inaugural.all))) {
 }
 
 # Corpus
-cname<- file.path("C:/Users/Will Schwieder/Desktop/DS TextasData/ALL")
+cname <- file.path("/Users/adrielbarrett-johnson/Dropbox/inaugTMtest")
 cname
 allcor<-Corpus(DirSource(cname))
 summary(allcor)
@@ -108,7 +111,7 @@ inspect <- (allDTM)
 str (allDTM)
 
 # Remove sparse/uncommon terms
-allcorcommon <- removeSparseTerms(allDTM, 0.97) # This makes a matrix that is only 15% empty space, maximum.
+allcorcommon <- removeSparseTerms(allDTM, 0.97) 
 dim(allDTM)
 dim(allcorcommon)
 
@@ -123,10 +126,8 @@ tm1 <- LDA(allcorcommon, k=5, control=list(seed=seed1))
 # sample held-out data - test, and estimating data - train
 set.seed(823) 
 train_size <- floor(.75 * nrow(allcorcommon))
-# I changed this to rows instead of columns (Adriel)
-train_index <- sample(seq_len(ncol(allcorcommon)), size=train_size)
+train_index <- sample(seq_len(nrow(allcorcommon)), size=train_size)
 
-#(adriel: and here as well, changed it to rows)
 train <- allcorcommon[train_index,]
 test <- allcorcommon[-train_index,]
 
@@ -158,34 +159,47 @@ perplex <- as.data.frame(cbind(px, k=c(5,10,20,30,40,50,60))) # and add k values
 plot <- ggplot(perplex, aes(x=k, y=px)) 
 plot + geom_line()
 
-# M1: Run the k=30 model on the sample data
+# M1: Run the k=5 model on the sample data
 seed1=823
-inaugural30 <- LDA(allcorcommon, k=30, control=list(seed=seed1))
+inaugural5 <- LDA(allcorcommon, k=5, control=list(seed=seed1))
 
 # M2: Run the k=30 model on the sample data
 seed2=500
-inaugural50 <- LDA(allcorcommon, k=50, control=list(seed=seed2))
+inaugural20 <- LDA(allcorcommon, k=20, control=list(seed=seed2))
 
 # Evaluate/Interpret
 # Terms
-terms(inaugural30, 3) # top 3
-terms(inaugural30, threshold=.005) # surpassing a threshold probability
-probterms <- as.data.frame(posterior(inaugural30)$terms) # all the topic-term probabilities
+terms(inaugural5, 3) # top 3
+terms(inaugural5, threshold=.005) # surpassing a threshold probability
+probterms <- as.data.frame(posterior(inaugural5)$terms) # all the topic-term probabilities
 
-terms(inaugural50, 3) # top 3
-terms(inaugural50, threshold=.005)
-probterms2 <- as.data.frame(posterior(inaugural50)$terms) 
+terms(inaugural20, 3) # top 3
+terms(inaugural20, threshold=.005)
+probterms2 <- as.data.frame(posterior(inaugural20)$terms) 
 
 ################# Commentary on Terms of M1 and M2
-# >>>Will, something to check: which lines printed the top term assignments for the
-# topics? // Do we have lines that do that?
-# 
-# Q: Do these seem like probably themes?
-# Q: Does M1 or M2 strick you as producing more meaningful topics? Why?
-# >>> I think M2, with only 30 topics.
+# Q: Do these seem like plausible themes?
+# Yes they seem like plausible themes because each of these Presidents is addressing 
+# similar audience (not same: people die). In an inaugural address, presidents consistently
+# are tryna get people amped up about their future work, which is reflected in these 
+# groupings.
+
+# Top Three words for the five topics:
+# 1: govern, state, power >>> theme = the power of the state
+# 2: nation, will, can >>> theme = the capacity for progress
+# 3: will, state, govern >>> theme = governing
+# 4: will, world, must >>> theme = the imperative of foreign relations
+# 5: peopl, govern, will >>> theme = governing
+
+# Note: themes 3 and 5 seem highly similar. 
+
+# Q: Do M1 or M2 strick you as producing more meaningful topics? Why?
+# >>> M1 (with 5 clusters) makes the most sense. Looking at M2, the clusters are super
+# repetitive. Even with 5 clusters, the groupings are similar and have multiple repeated
+# words, especially in the top 3 words for each cluster. Looking at the full listings of each
+# topic the five top topic clusters differentiates itself a little bit more. 
 
 #################
-
 
 # Topics
 topics(inaugural30, threshold=.03) 
@@ -198,65 +212,69 @@ probtopic2 <- as.data.frame(posterior(inaugural50)$topics)
 t3 <- subset(probtopic, probtopic[,3]>.75)
 t3$id <- row.names(t3)
 
-######################Commentary on top topic assignments for each document
-# >>> to check: DO WE HAVE CODE THAT PRINTS THEM TO THE CONSOLE?
-# Q: Graph the topic distribution for one document as an example
-# (I DONT THINK WE HAVE CODE THAT DOES THIS)
-# Q: Graph the same document for M1 and M2 - do the models with varying k assign
+#############
+# Graph the topic distribution for one document as an example
+topiclab <- as.data.frame(t(terms(inaugural5, 5)))
+topiclab$lab <- paste0(topiclab$V1, "-", topiclab$V2, "-", topiclab$V3, "-", topiclab$V4, "-", topiclab$V5)
+
+# Most likely topics for each document 
+topics(inaugural5, threshold=.10) # those composing 10% or more
+
+# More specifically, probability of topic in document
+prob <- as.data.frame(t(posterior(inaugural5)$topics))
+prob$topic <- as.factor(rownames(prob))
+prob$topiclab <- topiclab$lab
+
+# Graph topic probabilities for (late-1961.txt)
+ggplot(prob, aes(x=topiclab, y=prob[,44])) + 
+  geom_bar(stat="identity") + theme(axis.text.x=element_text(angle=-90, hjust=0)) +
+  labs(y=colnames(prob[44]), title="Topic Assignment")
+##It graphed only the topic nation-will-can-world-peopl for late-1961.txt
+
+# And graph the same document for M2 as well - do the models with varying k assign
 # the document to a seemingly similar topic??
-######################
+topic2lab <- as.data.frame(t(terms(inaugural20, 20)))
+topic2lab$lab <- paste0(topic2lab$V1, "-", topic2lab$V2, "-", topic2lab$V3, "-", topic2lab$V4, "-", topic2lab$V5)
 
-# Cohesiveness 
-# A function to calculate cohesiveness of topics based on the
-# occurrenc/co-occurrence of top 10 word assignments across documents
-cohesiveness<- function(mod.out, allDTM, k){
-  topWords <- terms(mod.out, 10)[,k] 
-  data <- as.matrix(allDTM)
-  cohvec <- c()
-  for (l in 1:10){
-    word1 <- topWords[l]
-    m <- 1
-    while (m < l){
-      word2 <- topWords[m] 
-      D_m <- length(which(data[,word2] > 0)) # occurrence of word m
-      D_l_m <- length(which(data[,word1] > 0 & data[,word2] > 0)) # co-occurrence of word l and m
-      cohvec<- append(cohvec, log( (D_l_m + 1)/ D_m) ) # plug into formula (log of pair-wise ratios)
-      m <- m + 1
-    }
-  } 
-  return (sum(cohvec)) # sum pair-wise ratios across topic
-}
+# Most likely topics for each document 
+topics(inaugural20, threshold=.10) # those composing 10% or more
 
-# A second function that calls the cohesiveness function over values of K
-cohesive <- function(mod.out, allDTM{
-  k <- mod.out@k
-  coh <- numeric(k)
-  for (i in 1:k) {
-    coh[i] <- cohesiveness(mod.out, allDTM, i)
-  }
-  names(coh) <- seq(1,k,1)
-  coh
-}
+# More specifically, probability of topic in document
+prob2 <- as.data.frame(t(posterior(inaugural20)$topics))
+prob2$topic <- as.factor(rownames(prob2))
+prob2$topic2lab <- topic2lab$lab
 
-# Call cohesive function: cohesive(model, dtm)
-cohesive(inaugural30, allcorcommon) # Bigger numbers (less negative numbers) are more cohesive
+# Graph topic probabilities for (late-1961.txt)
+ggplot(prob2, aes(x=topic2lab, y=prob2[,44])) + 
+  geom_bar(stat="identity") + theme(axis.text.x=element_text(angle=-90, hjust=0)) +
+  labs(y=colnames(prob[44]), title="Topic Assignment")
 
-# Exclusivity
-# A function to calculate exclusivity of topics based on the probability
-# of the top 10 words probability assignment to multiple topics
-exclusivity <- function(mod.out, M=10){
-  tbeta <- t(exp(mod.out@beta))
-  s <- rowSums(tbeta)
-  mat <- tbeta/s #normed by columns of beta now.
-  ex <- apply(mat,2,rank)/nrow(mat)
-  index <- apply(tbeta, 2, order, decreasing=TRUE)[1:M,]
-  exc <- vector(length=ncol(tbeta))
-  for(i in 1:length(exc)) {
-    exc[i] <- sum(ex[index[,i],i])
-  }
-  names(exc) <- seq(1,length(exc),1)
-  exc
-}
+# It graphed the topics nation-world-people-will-free 
+# and will-new-world-america-nation for late-1961.txt
+# So yes, the models with differing k still assign super similar topics to the
+# same document, which is makes sense - and is super cool. 
 
-# exclusivity(model)
-exclusivity(inaugural30)
+#For one to two topics that struck you as more valid above; identify a document to 
+#which those topics are strongly associated and have a look at these documents. 
+#Upon reading them more closely, do they seem to contain the “theme” you believed 
+#the terms represented?
+# 
+# 1949, 1953, and 1957 all are solely identified with topic 20, which is 
+# can-countri-faith-free-help-hope-know-live-may-must-nation-peac-peopl-secur-shall-unit-will-world
+# Reading those three speeches, they do seem to hold together as a common theme, although
+# I think there are also significant enough differences in tone and issues discussed
+# that I am surprised that with k=20 the model did not ascribe more topics to 
+# these speeches.
+# 
+# 1949 can be summed up by "The first half of this century has been marked by 
+# unprecedented and brutal attacks on the rights of man, and by the two most 
+# frightful wars in history. The supreme need of our time is for men to learn to live 
+# together in peace and harmony."
+# 
+# 1953 can be summed up by "How far have we come in man's long pilgrimage from darkness
+# toward the light? Are we nearing the light--a day of freedom and of peace for all 
+# mankind? Or are the shadows of another night closing in upon us?"
+# 
+# 1957 can be summed up by "We must use our skills and knowledge and, at times, 
+# our substance, to help others rise from misery, however far the scene of suffering 
+# may be from our shores. "
